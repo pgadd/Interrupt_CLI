@@ -1,7 +1,9 @@
 #include <./timer.h>
 
 void Timer_Init(void) {
-    htim3.Instance = TIM2;
+    __HAL_RCC_TIM3_CLK_ENABLE();
+
+    htim3.Instance = TIM3;
     htim3.Init.Prescaler = 15;
     htim3.Init.Period = 19999;
     htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -17,7 +19,7 @@ void Timer_Init(void) {
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    
+
     GPIO_InitTypeDef Pwm_channel = {0};
     Pwm_channel.Pin = GPIO_PIN_7;
     Pwm_channel.Pull = GPIO_NOPULL;
