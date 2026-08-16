@@ -28,10 +28,13 @@ int main(void)
     GPIO_Init();
     UART_init();
     Timer_Init();
+    ADC_Init();
 
     
     while (1){
-
+        HAL_ADC_Start(&adc1);
+        HAL_ADC_PollForConversion(&adc1, 10);
+        uint16_t adc_reading = HAL_ADC_GetValue(&adc1);
     }
 
     return 0;
