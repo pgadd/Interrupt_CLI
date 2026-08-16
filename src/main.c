@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <./uart_buffer.h>
 #include <./timer.h>
+#include <./adc.h>
 
 void GPIO_Init(void);
 void GPIO_Init(void) {

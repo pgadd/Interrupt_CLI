@@ -27,7 +27,7 @@ void UART_init(void){
     HAL_NVIC_SetPriority(LPUART1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(LPUART1_IRQn);
 
-    //Basically does the same as this LPUART1->CR1 |= USART_CR1_RXNEIE;
+    //Basically does the same as this LPUART1->CR1 |= USART_CR1_RXNEIE; It basically turns on the Not empty bit, indicating that someting has been recieved.
     __HAL_UART_ENABLE_IT(&hlpuart1, UART_IT_RXNE);
 }
 
@@ -37,10 +37,10 @@ void LPUART1_IRQHandler(void) {
 
         if (rx_data == '1') {
             //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-            TIM3->CCR2 = 2000;
+            TIM3->CCR2 = 2500;
         } else if (rx_data == '0') {
             //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-            TIM3->CCR2 = 1000;
+            TIM3->CCR2 = 500;
         }
 
         LPUART1->TDR = rx_data;
