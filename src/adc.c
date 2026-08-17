@@ -22,6 +22,15 @@ void ADC_Init(void){
     adc1.Init.DataAlign = ADC_DATAALIGN_RIGHT; // ALIGNS our 12 bit to the right of the 16 bit register instead of the left so that our range is 2^12 and not 2^16
     adc1.Init.ExternalTrigConv = ADC_SOFTWARE_START; // Allows the software to trigger the conversion on demand.
 
+    // 1. Tell it we are only doing exactly ONE conversion
+    adc1.Init.NbrOfConversion = 1;
+
+    // 2. Tell it to wave the "Finished" flag (EOC) after a single channel is done
+    adc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+
+    // 3. Divide the system clock so the ADC doesn't run too fast and crash
+    adc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+
     HAL_ADC_Init(&adc1);
 
     ADC_ChannelConfTypeDef sConfig = {0};
