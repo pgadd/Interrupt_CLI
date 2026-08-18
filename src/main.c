@@ -61,7 +61,7 @@ int main(void)
         uint32_t left_light = HAL_ADC_GetValue(&adc1);
         HAL_ADC_Stop(&adc1);
 
-        if (previous_light > left_light) {
+        if (previous_light > left_light + 15) {
             step_dir = step_dir * -1;
         }
 
@@ -70,17 +70,19 @@ int main(void)
 
         if (current_pwm < 500 ){
             current_pwm = 500;
+            step_dir = step_dir * -1; 
         } else if (current_pwm > 2500) {
             current_pwm = 2500;
+            step_dir = step_dir * -1;
         }
 
-
+        //The pwm channel data register to send to the motor.
         TIM3->CCR2 = current_pwm;
 
         snprintf(msg, sizeof(msg), "light: %lu | current_pwm: %d\r\n", left_light, current_pwm);
         HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 100);
 
-        HAL_Delay(100);
+        HAL_Delay(20);
         
     }
 
