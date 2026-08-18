@@ -7,8 +7,6 @@
 #include <./timer.h>
 #include <./adc.h>
 
-ADC_ChannelConfTypeDef sConfig;
-
 void GPIO_Init(void);
 void GPIO_Init(void) {
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -47,11 +45,17 @@ int main(void)
     uint32_t previous_light = 0;
     uint16_t current_pwm = 1500;
 
+    ADC_ChannelConfTypeDef sConfig1 = {0};
+
+    sConfig1.Channel = ADC_CHANNEL_1;
+    sConfig1.Rank = ADC_REGULAR_RANK_1;
+    sConfig1.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+
+
     while (1){
 
         // --- Read Left Eye (PA0 / Channel 1) ---
-        sConfig.Channel = ADC_CHANNEL_1;
-        HAL_ADC_ConfigChannel(&adc1, &sConfig);
+        HAL_ADC_ConfigChannel(&adc1, &sConfig1);
         HAL_ADC_Start(&adc1);
         HAL_ADC_PollForConversion(&adc1, 10);
         uint32_t left_light = HAL_ADC_GetValue(&adc1);
@@ -69,6 +73,7 @@ int main(void)
         } else if (current_pwm > 2500) {
             current_pwm = 2500;
         }
+
 
         TIM3->CCR2 = current_pwm;
 

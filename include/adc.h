@@ -7,7 +7,6 @@
 #include <stdio.h>
 
 ADC_HandleTypeDef adc1;
-extern ADC_ChannelConfTypeDef sConfig;
 
 void ADC_Init(void);
 

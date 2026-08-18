@@ -11,7 +11,7 @@ void ADC_Init(void){
     adc.Pull = GPIO_NOPULL;
     adc.Speed = GPIO_SPEED_FREQ_LOW;
     //adc.Alternate = ADC12_COMMON;
-    //We don't need an alternate instant because 
+    //We don't need an alternate instant because the input is purely analog and we don't want any other electricity going through and interferring.
 
     HAL_GPIO_Init(GPIOA, &adc);
 
@@ -35,11 +35,13 @@ void ADC_Init(void){
 
     HAL_ADCEx_Calibration_Start(&adc1, ADC_SINGLE_ENDED); //Sicne ADC is very fast, this essentially states that ADC can calibrate itself.
 
+
+    ADC_ChannelConfTypeDef sConfig = {0};
     sConfig.Channel = ADC_CHANNEL_1;
     sConfig.Rank = ADC_REGULAR_RANK_1;
     sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
 
-    // HAL_ADC_ConfigChannel(&adc1, &sConfig);
+    HAL_ADC_ConfigChannel(&adc1, &sConfig);
 
 
 }
