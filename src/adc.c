@@ -33,13 +33,13 @@ void ADC_Init(void){
 
     HAL_ADC_Init(&adc1);
 
-    ADC_ChannelConfTypeDef sConfig = {0};
+    HAL_ADCEx_Calibration_Start(&adc1, ADC_SINGLE_ENDED); //Sicne ADC is very fast, this essentially states that ADC can calibrate itself.
 
     sConfig.Channel = ADC_CHANNEL_1;
     sConfig.Rank = ADC_REGULAR_RANK_1;
     sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
 
-    HAL_ADC_ConfigChannel(&adc1, &sConfig);
+    // HAL_ADC_ConfigChannel(&adc1, &sConfig);
 
 
 }

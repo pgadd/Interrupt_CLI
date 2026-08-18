@@ -7,6 +7,8 @@
 #include <./timer.h>
 #include <./adc.h>
 
+ADC_ChannelConfTypeDef sConfig;
+
 void GPIO_Init(void);
 void GPIO_Init(void) {
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -40,12 +42,37 @@ int main(void)
 
 
     char msg[50];
-    while (1){
-        HAL_ADC_Start(&adc1);
-        HAL_StatusTypeDef status = HAL_ADC_PollForConversion(&adc1, 10);
-        uint16_t adc_reading = HAL_ADC_GetValue(&adc1);
 
-        snprintf(msg, sizeof(msg), "Status: %d | Sensor: %u\r\n", status, adc_reading);
+    int step_dir = 10;
+    uint32_t previous_light = 0;
+    uint16_t current_pwm = 1500;
+
+    while (1){
+
+        // --- Read Left Eye (PA0 / Channel 1) ---
+        sConfig.Channel = ADC_CHANNEL_1;
+        HAL_ADC_ConfigChannel(&adc1, &sConfig);
+        HAL_ADC_Start(&adc1);
+        HAL_ADC_PollForConversion(&adc1, 10);
+        uint32_t left_light = HAL_ADC_GetValue(&adc1);
+        HAL_ADC_Stop(&adc1);
+
+        if (previous_light > left_light) {
+            step_dir = step_dir * -1;
+        }
+
+        previous_light = left_light;
+        current_pwm += step_dir;
+
+        if (current_pwm < 500 ){
+            current_pwm = 500;
+        } else if (current_pwm > 2500) {
+            current_pwm = 2500;
+        }
+
+        TIM3->CCR2 = current_pwm;
+
+        snprintf(msg, sizeof(msg), "light: %lu | current_pwm: %d\r\n", left_light, current_pwm);
         HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 100);
 
         HAL_Delay(100);
