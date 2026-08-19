@@ -26,7 +26,6 @@ void SysTick_Handler(void) {
     HAL_IncTick(); //Esssentially increments a global volatile variable called uwTick.
 }
 
-
 int main(void)
 {
     HAL_Init();
@@ -45,21 +44,12 @@ int main(void)
     uint32_t previous_light = 0;
     uint16_t current_pwm = 1500;
 
-    ADC_ChannelConfTypeDef sConfig1 = {0};
-
-    sConfig1.Channel = ADC_CHANNEL_1;
-    sConfig1.Rank = ADC_REGULAR_RANK_1;
-    sConfig1.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
-
+    HAL_ADC_Start_DMA(&adc1, (uint32_t*)adc_buffer, 1);
 
     while (1){
 
         // --- Read Left Eye (PA0 / Channel 1) ---
-        HAL_ADC_ConfigChannel(&adc1, &sConfig1);
-        HAL_ADC_Start(&adc1);
-        HAL_ADC_PollForConversion(&adc1, 10);
-        uint32_t left_light = HAL_ADC_GetValue(&adc1);
-        HAL_ADC_Stop(&adc1);
+        uint32_t left_light = adc_buffer[0];
 
         if (previous_light > left_light + 15) {
             step_dir = step_dir * -1;

@@ -3,6 +3,8 @@
 void ADC_Init(void){
     __HAL_RCC_ADC12_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMAMUX1_CLK_ENABLE();
 
     GPIO_InitTypeDef adc = {0};
 
@@ -31,6 +33,8 @@ void ADC_Init(void){
     // 3. Divide the system clock so the ADC doesn't run too fast and crash
     adc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
 
+    adc1.Init.DMAContinuousRequests = ENABLE;
+
     HAL_ADC_Init(&adc1);
 
     HAL_ADCEx_Calibration_Start(&adc1, ADC_SINGLE_ENDED); //Sicne ADC is very fast, this essentially states that ADC can calibrate itself.
@@ -42,6 +46,22 @@ void ADC_Init(void){
     sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
 
     HAL_ADC_ConfigChannel(&adc1, &sConfig);
+
+    //DMA configuration
+
+    hdma_adc1.Instance = DMA1_Channel1;
+    hdma_adc1.Init.Mode = DMA_CIRCULAR;
+    hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_adc1.Init.Request = DMA_REQUEST_ADC1;
+    hdma_adc1.Init.MemInc = DMA_MINC_DISABLE;
+    hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
+
+    __HAL_LINKDMA(&adc1, DMA_Handle, hdma_adc1);
+    HAL_DMA_Init(&hdma_adc1);
+    
+
 
 
 }
