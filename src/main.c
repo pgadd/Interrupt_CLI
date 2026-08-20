@@ -44,54 +44,51 @@ int main(void)
     } TurretPosition;
 
     TurretPosition center = {1500, 1500}; // Start motors in the middle
-    uint32_t move_start_time = 0;
-    const uint32_t MOTOR_SETTLE_TIME = 50;
-    const int SCAN_WIDTH = 30; 
-    const int STEP_SPEED = 40;
     
     char msg[100];
 
     HAL_ADC_Start_DMA(&adc1, (uint32_t*)adc_buffer, 1);
 
-    int pan_dir = 20;
-    int tilt_dir = 20;
+    int pan_dir = 30;
+    int tilt_dir = 30;
     uint32_t previous_light = adc_buffer[0];
     uint32_t last_move_time = HAL_GetTick();
     int active_axis = 0; // 0 = Pan, 1 = Tilt
 
     while (1){
         // Wait 50ms for the servo to finish a smooth, single step
-        if (HAL_GetTick() - last_move_time >= 50) { 
+        if (HAL_GetTick() - last_move_time >= 40) { 
             
             uint32_t current_light = adc_buffer[0];
 
-            // If the light got darker, we stepped the wrong way! Reverse direction.
-            if (current_light + 10 < previous_light) { 
+            uint32_t diff = (current_light > previous_light) ? 
+                            (current_light - previous_light) : 
+                            (previous_light - current_light);
+
+            
+            if (diff > 1) {
+                if (current_light + 10 < previous_light) { 
+                    if (active_axis == 0) pan_dir *= -1; 
+                    else tilt_dir *= -1; 
+                }
+
+                // Actually move the motors
                 if (active_axis == 0) {
-                    pan_dir = pan_dir * -1; 
+                    center.pan += pan_dir;
+                    if (center.pan < 500)  { center.pan = 500;  pan_dir *= -1; }
+                    if (center.pan > 2500) { center.pan = 2500; pan_dir *= -1; }
+                    TIM3->CCR1 = center.pan;
+                    active_axis = 1;
                 } else {
-                    tilt_dir = tilt_dir * -1; 
+                    center.tilt += tilt_dir;
+                    if (center.tilt < 500)  { center.tilt = 500;  tilt_dir *= -1; }
+                    if (center.tilt > 2500) { center.tilt = 2500; tilt_dir *= -1; }
+                    TIM3->CCR2 = center.tilt;
+                    active_axis = 0; 
                 }
             }
-            previous_light = current_light;
 
-            // Move the active axis and enforce boundaries
-            if (active_axis == 0) {
-                center.pan += pan_dir;
-                if (center.pan < 500)  { center.pan = 500;  pan_dir *= -1; }
-                if (center.pan > 2500) { center.pan = 2500; pan_dir *= -1; }
-                
-                TIM3->CCR1 = center.pan;
-                active_axis = 1; // Hand off control to Tilt next cycle
-                
-            } else {
-                center.tilt += tilt_dir;
-                if (center.tilt < 500)  { center.tilt = 500;  tilt_dir *= -1; }
-                if (center.tilt > 2500) { center.tilt = 2500; tilt_dir *= -1; }
-                
-                TIM3->CCR2 = center.tilt;
-                active_axis = 0; // Hand off control to Pan next cycle
-            }
+            previous_light = current_light;
 
             snprintf(msg, sizeof(msg), "X: %u | Y: %u | Light: %lu\r\n", center.pan, center.tilt, current_light);
             HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 100);
