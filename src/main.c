@@ -38,140 +38,66 @@ int main(void)
     HAL_UART_Transmit(&hlpuart1, (uint8_t*)"\r\n--- Booting Up ---\r\n", 22, 100);
 
 
-    typedef enum {
-    SCAN_LEFT,
-    WAIT_LEFT,
-    SCAN_RIGHT,
-    WAIT_RIGHT,
-    SCAN_UP,
-    WAIT_UP,
-    SCAN_DOWN,
-    WAIT_DOWN,
-    CALCULATE_CENTER
-    } TurretState;
-
-    TurretState current_state = SCAN_LEFT;
-
-    // Your excellent struct ideas:
-    typedef struct {
-        uint32_t left;
-        uint32_t right;
-        uint32_t up;
-        uint32_t down;
-    } LightReadings;
-
     typedef struct {
         uint16_t pan;
         uint16_t tilt;
     } TurretPosition;
 
-    LightReadings readings = {0};
     TurretPosition center = {1500, 1500}; // Start motors in the middle
     uint32_t move_start_time = 0;
-    const uint32_t MOTOR_SETTLE_TIME = 30;
+    const uint32_t MOTOR_SETTLE_TIME = 50;
+    const int SCAN_WIDTH = 30; 
+    const int STEP_SPEED = 40;
     
     char msg[100];
 
     HAL_ADC_Start_DMA(&adc1, (uint32_t*)adc_buffer, 1);
 
+    int pan_dir = 20;
+    int tilt_dir = 20;
+    uint32_t previous_light = adc_buffer[0];
+    uint32_t last_move_time = HAL_GetTick();
+    int active_axis = 0; // 0 = Pan, 1 = Tilt
+
     while (1){
-        switch(current_state) {
-            case SCAN_LEFT:
-                // 1. Command the motor
-                TIM3->CCR3 = center.pan - 20;
+        // Wait 50ms for the servo to finish a smooth, single step
+        if (HAL_GetTick() - last_move_time >= 50) { 
+            
+            uint32_t current_light = adc_buffer[0];
+
+            // If the light got darker, we stepped the wrong way! Reverse direction.
+            if (current_light + 10 < previous_light) { 
+                if (active_axis == 0) {
+                    pan_dir = pan_dir * -1; 
+                } else {
+                    tilt_dir = tilt_dir * -1; 
+                }
+            }
+            previous_light = current_light;
+
+            // Move the active axis and enforce boundaries
+            if (active_axis == 0) {
+                center.pan += pan_dir;
+                if (center.pan < 500)  { center.pan = 500;  pan_dir *= -1; }
+                if (center.pan > 2500) { center.pan = 2500; pan_dir *= -1; }
                 
-                // 2. Start the stopwatch
-                move_start_time = HAL_GetTick();
+                TIM3->CCR1 = center.pan;
+                active_axis = 1; // Hand off control to Tilt next cycle
                 
-                // 3. Move to the waiting state
-                current_state = WAIT_LEFT;
-                break;
-
-            case WAIT_LEFT:
-                if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.left = adc_buffer[0];
-                    
-                    current_state = SCAN_RIGHT;
-                }
-                break;
-            
-            case SCAN_RIGHT:
-                TIM3->CCR3 = center.pan + 20;
-
-                move_start_time = HAL_GetTick();
-
-                current_state = WAIT_RIGHT;
-                break;
-
-            case WAIT_RIGHT:
-                if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.right = adc_buffer[0];
-                    
-                    current_state = SCAN_UP;
-                }
-                break;
-            
-            case SCAN_UP:
-                TIM3->CCR2 = center.pan + 20;
-
-                move_start_time = HAL_GetTick();
-
-                current_state = WAIT_UP;
-                break;
-            
-            case WAIT_UP:
-                if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.up = adc_buffer[0];
-                    
-                    current_state = SCAN_DOWN;
-                }
-                break;
-            
-            case SCAN_DOWN:
-                TIM3->CCR2 = center.pan - 20;
-
-                move_start_time = HAL_GetTick();
-
-                current_state = WAIT_DOWN;
-                break;
-            
-            case WAIT_DOWN:
-                if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.down = adc_buffer[0];
-                    
-                    current_state = CALCULATE_CENTER;
-                }
-                break;
-
-            case CALCULATE_CENTER:
-                // 1. Evaluate Pan (Left/Right)
-                if (readings.left > readings.right + 15) {
-                    center.pan -= 10; // Move center left
-                } else if (readings.right > readings.left + 15) {
-                    center.pan += 10; // Move center right
-                }
-
-                // 2. Evaluate Tilt (Up/Down)
-                if (readings.up > readings.down + 15) {
-                    center.tilt += 10; // Move center up
-                } else if (readings.down > readings.up + 15) {
-                    center.tilt -= 10; // Move center down
-                }
-            
-                TIM3 -> CCR3 = center.pan;
-                TIM3 -> CCR2 = center.tilt;
-
-                HAL_Delay(10);
-
-                snprintf(msg, sizeof(msg), "X: %d | Y: %d | left: %ld | right: %ld | up: %ld | down: %ld\r\n", center.pan , center.tilt, readings.left, readings.right, readings.up, readings.down);
-
-                HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 100);
-
-                current_state = SCAN_LEFT;
-                break;
+            } else {
+                center.tilt += tilt_dir;
+                if (center.tilt < 500)  { center.tilt = 500;  tilt_dir *= -1; }
+                if (center.tilt > 2500) { center.tilt = 2500; tilt_dir *= -1; }
                 
+                TIM3->CCR2 = center.tilt;
+                active_axis = 0; // Hand off control to Pan next cycle
+            }
+
+            snprintf(msg, sizeof(msg), "X: %u | Y: %u | Light: %lu\r\n", center.pan, center.tilt, current_light);
+            HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 100);
+            
+            last_move_time = HAL_GetTick();
         }
-        
     }
 
     return 0;
