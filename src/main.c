@@ -105,7 +105,7 @@ int main(void)
 
             case WAIT_RIGHT:
                 if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.left = adc_buffer[0];
+                    readings.right = adc_buffer[0];
                     
                     current_state = SCAN_UP;
                 }
@@ -121,7 +121,7 @@ int main(void)
             
             case WAIT_UP:
                 if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.left = adc_buffer[0];
+                    readings.up = adc_buffer[0];
                     
                     current_state = SCAN_DOWN;
                 }
@@ -137,7 +137,7 @@ int main(void)
             
             case WAIT_DOWN:
                 if ((HAL_GetTick() - move_start_time) >= MOTOR_SETTLE_TIME) {
-                    readings.left = adc_buffer[0];
+                    readings.down = adc_buffer[0];
                     
                     current_state = CALCULATE_CENTER;
                 }
