@@ -60,8 +60,6 @@ void ADC_Init(void){
 
     __HAL_LINKDMA(&adc1, DMA_Handle, hdma_adc1);
     HAL_DMA_Init(&hdma_adc1);
-    
-
 
 
 }
